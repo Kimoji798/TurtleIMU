@@ -78,3 +78,8 @@ npx cap open ios        # 或 npx cap open android
 - iPhone Safari 不支持 `Magnetometer` 原始 XYZ，磁力计卡片会显示「不支持」并用指南针航向代替。
 - 高度来自卫星定位（WGS84 椭球），精度有限；无定位时显示 `--`。
 - 速度来自定位结果，静止或定位质量差时可能为 `--`。
+## 部署排错
+
+- `Resource not accessible by integration` / `Get Pages site failed: Not Found`：仓库还没启用 Pages。打开 `Settings → Pages → Source` 选 `GitHub Actions` → `Save`（只需一次），再回 `Actions` 页对失败运行点 `Re-run all jobs`。
+- 仓库是 Private 时 Pages 需要付费套餐，改成 Public 即可用。
+- `Node.js 20 is deprecated` 只是警告，不影响部署。
