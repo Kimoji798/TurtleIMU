@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TurtleIMU">
+  <meta name="theme-color" content="#000000">
+  <title>TurtleIMU · 手机传感器</title>
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" type="image/png" href="icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    :root {
+      --bg: #000000;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #ffffff;
+      --muted: #8e8e93;
+      --dim: #636366;
+      --accent: #0a84ff;
+      --x: #ff453a;
+      --y: #30d158;
+      --z: #0a84ff;
+      --green: #30d158;
+      --red: #ff453a;
+      --blue: #0a84ff;
+      --amber: #ffd60a;
+      --gray: #636366;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: var(--text);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #app {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: radial-gradient(120% 120% at 30% 20%, #1c1c1e, #000);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex: 0 0 auto;
+    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+    .brand .sub { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+    .btn {
+      appearance: none; border: none; border-radius: 12px;
+      padding: 10px 14px; font-size: 14px; font-weight: 600;
+      color: #fff; cursor: pointer;
+      background: var(--accent);
+      flex: 0 0 auto;
+    }
+    .btn:active { opacity: .8; }
+    .btn.disabled { background: #2c2c2e; color: var(--muted); }
+    .btn.ghost { background: rgba(255,255,255,.08); color: var(--text); }
+
+    .banner {
+      border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45;
+      margin-bottom: 12px; border: 1px solid var(--border);
+    }
+    .banner.hidden { display: none; }
+    .banner.info { background: rgba(10, 132, 255, .12); border-color: rgba(10, 132, 255, .35); color: #7db8ff; }
+    .banner.warn { background: rgba(255, 214, 10, .10); border-color: rgba(255, 214, 10, .35); color: #ffe57a; }
+    .banner.err  { background: rgba(255, 69, 58, .12); border-color: rgba(255, 69, 58, .35); color: #ff9f9a; }
+
+    .hero {
+      display: flex; align-items: center; gap: 16px;
+      background: radial-gradient(120% 100% at 50% 0%, #1a1a1c 0%, #0b0b0d 70%);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 18px; margin-bottom: 12px;
+    }
+    .compass { flex: 1; min-width: 0; }
+    .compass-value { display: flex; align-items: baseline; gap: 4px; }
+    .compass-value .num { font-size: 56px; font-weight: 300; letter-spacing: -2px; font-variant-numeric: tabular-nums; line-height: 1; }
+    .compass-value .deg { font-size: 24px; color: var(--muted); }
+    .compass-dir { margin-top: 8px; font-size: 17px; color: var(--muted); letter-spacing: 3px; }
+    .compass-arrow {
+      display: inline-block; margin-top: 12px; font-size: 26px; color: var(--x);
+      transition: transform .1s linear; transform-origin: 50% 50%;
+    }
+
+    .cube-wrap { perspective: 700px; flex: 0 0 auto; }
+    .cube { position: relative; width: 82px; height: 82px; transform-style: preserve-3d; }
+    .face {
+      position: absolute; inset: 0; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: rgba(255,255,255,.55);
+    }
+    .face.front  { transform: translateZ(41px); }
+    .face.back   { transform: rotateY(180deg) translateZ(41px); }
+    .face.right  { transform: rotateY(90deg) translateZ(41px); }
+    .face.left   { transform: rotateY(-90deg) translateZ(41px); }
+    .face.top    { transform: rotateX(90deg) translateZ(41px); }
+    .face.bottom { transform: rotateX(-90deg) translateZ(41px); }
+
+    .status-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 10px; font-size: 12px; color: var(--text);
+    }
+    .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gray); }
+    .chip .dot.green { background: var(--green); }
+    .chip .dot.red { background: var(--red); }
+    .chip .dot.blue { background: var(--blue); }
+    .chip .dot.amber { background: var(--amber); }
+    .chip .dot.gray { background: var(--gray); }
+    .chip .st { color: var(--muted); }
+
+    .grid { display: flex; flex-direction: column; gap: 12px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 16px;
+    }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+    .card-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card .unit { font-size: 12px; color: var(--dim); margin: 4px 0 12px; }
+
+    .axis { display: flex; align-items: center; gap: 8px; margin: 9px 0; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .dot.x { background: var(--x); }
+    .dot.y { background: var(--y); }
+    .dot.z { background: var(--z); }
+    .ax { width: 16px; font-size: 13px; color: var(--muted); flex: 0 0 auto; }
+    .track {
+      position: relative; flex: 1; height: 7px; border-radius: 4px;
+      background: rgba(255,255,255,.08); overflow: hidden;
+    }
+    .track .mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.18); }
+    .track .fill { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; border-radius: 4px; transition: width .06s linear, left .06s linear; }
+    .fill.x { background: var(--x); }
+    .fill.y { background: var(--y); }
+    .fill.z { background: var(--z); }
+    .val { width: 78px; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+
+    .mag { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .mag b { color: var(--text); font-weight: 600; }
+    .src { margin-top: 8px; font-size: 11px; color: var(--dim); min-height: 13px; }
+
+    .rows { display: flex; flex-direction: column; gap: 9px; }
+    .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .row .k { font-size: 13px; color: var(--muted); flex: 0 0 auto; }
+    .row .v { font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
+    .row .v small { color: var(--dim); font-size: 11px; }
+    .row .v .dim { color: var(--dim); }
+
+    .note { margin-top: 10px; font-size: 11px; color: var(--dim); line-height: 1.5; }
+
+    .foot { display: flex; gap: 10px; margin-top: 16px; }
+    .foot .btn { flex: 1; }
+
+    @media (min-width: 620px) {
+      .grid { display: grid; grid-template-columns: 1fr 1fr; }
+    }
+  </style></head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">🐢</div>
+        <div>
+          <h1>TurtleIMU</h1>
+          <p class="sub">手机传感器实时监测</p>
+        </div>
+      </div>
+      <button id="start-btn" class="btn">启动传感器</button>
+    </header>
+
+    <div id="banner" class="banner info">点击右上角「启动传感器」开始读取手机实时数据</div>
+
+    <section class="hero">
+      <div class="compass">
+        <div class="compass-value"><span class="num" id="heading-deg">---</span><span class="deg">°</span></div>
+        <div class="compass-dir" id="heading-dir">未启动</div>
+        <span class="compass-arrow" id="compass-arrow">➤</span>
+      </div>
+      <div class="cube-wrap">
+        <div class="cube" id="cube">
+          <div class="face front">X</div>
+          <div class="face back">X</div>
+          <div class="face right">Y</div>
+          <div class="face left">Y</div>
+          <div class="face top">Z</div>
+          <div class="face bottom">Z</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="status-row">
+      <div class="chip"><span class="dot" id="dot-gps"></span>定位<span class="st" id="lab-gps">待启动</span></div>
+      <div class="chip"><span class="dot" id="dot-acc"></span>加速度计<span class="st" id="lab-acc">待启动</span></div>
+      <div class="chip"><span class="dot" id="dot-gyro"></span>陀螺仪<span class="st" id="lab-gyro">待启动</span></div>
+      <div class="chip"><span class="dot" id="dot-mag"></span>磁力计<span class="st" id="lab-mag">待启动</span></div>
+      <div class="chip"><span class="dot" id="dot-temp"></span>温度<span class="st" id="lab-temp">待启动</span></div>
+    </div>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-head"><h2>加速度计</h2></div>
+        <div class="unit">m/s²（含重力）</div>
+        <div class="axis"><span class="dot x"></span><span class="ax">X</span><div class="track"><div class="fill x" id="acc-fx"></div><span class="mid"></span></div><span class="val" id="acc-x">--</span></div>
+        <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="acc-fy"></div><span class="mid"></span></div><span class="val" id="acc-y">--</span></div>
+        <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="acc-fz"></div><span class="mid"></span></div><span class="val" id="acc-z">--</span></div>
+        <div class="mag">合成 <b id="acc-mag">--</b> m/s² · <b id="acc-g">--</b> g</div>
+        <div class="src" id="src-acc"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>陀螺仪</h2></div>
+        <div class="unit">°/s（绕设备 X / Y / Z 轴）</div>
+        <div class="axis"><span class="dot x"></span><span class="ax">X</span><div class="track"><div class="fill x" id="gyro-fx"></div><span class="mid"></span></div><span class="val" id="gyro-x">--</span></div>
+        <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="gyro-fy"></div><span class="mid"></span></div><span class="val" id="gyro-y">--</span></div>
+        <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="gyro-fz"></div><span class="mid"></span></div><span class="val" id="gyro-z">--</span></div>
+        <div class="mag">合成 <b id="gyro-mag">--</b> °/s</div>
+        <div class="src" id="src-gyro"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>磁力计</h2></div>
+        <div class="unit">µT（微特斯拉）</div>
+        <div class="axis"><span class="dot x"></span><span class="ax">X</span><div class="track"><div class="fill x" id="mag-fx"></div><span class="mid"></span></div><span class="val" id="mag-x">--</span></div>
+        <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="mag-fy"></div><span class="mid"></span></div><span class="val" id="mag-y">--</span></div>
+        <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="mag-fz"></div><span class="mid"></span></div><span class="val" id="mag-z">--</span></div>
+        <div class="mag">合成 <b id="mag-mag">--</b> µT</div>
+        <div class="src" id="src-mag"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>定位与速度</h2></div>
+        <div class="unit">GPS / 北斗 / GLONASS 等卫星定位</div>
+        <div class="rows">
+          <div class="row"><span class="k">纬度</span><span class="v"><span id="gps-lat-dec">--</span> <small><span id="gps-lat-dms">--</span></small></span></div>
+          <div class="row"><span class="k">经度</span><span class="v"><span id="gps-lon-dec">--</span> <small><span id="gps-lon-dms">--</span></small></span></div>
+          <div class="row"><span class="k">高度</span><span class="v"><span id="gps-alt">--</span> <small><span id="gps-alt-ft">--</span></small></span></div>
+          <div class="row"><span class="k">速度</span><span class="v"><span id="gps-speed">--</span> <small><span id="gps-speed-ms">--</span></small></span></div>
+          <div class="row"><span class="k">航向</span><span class="v" id="gps-heading">--</span></div>
+          <div class="row"><span class="k">定位精度</span><span class="v" id="gps-acc">--</span></div>
+          <div class="row"><span class="k">更新时间</span><span class="v" id="gps-time">--</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>温度</h2></div>
+        <div class="unit">环境温度来自气象 API，随定位自动刷新</div>
+        <div class="rows">
+          <div class="row"><span class="k">环境温度</span><span class="v" id="temp-env">--</span></div>
+          <div class="row"><span class="k">体感温度</span><span class="v" id="temp-apparent">--</span></div>
+          <div class="row"><span class="k">相对湿度</span><span class="v" id="temp-humidity">--</span></div>
+          <div class="row"><span class="k">设备温度</span><span class="v" id="temp-device">--</span></div>
+        </div>
+        <div class="note">设备/电池温度受浏览器安全限制无法读取，仅能通过原生封装（Capacitor 插件）扩展。</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>实时统计</h2></div>
+        <div class="unit">采样与刷新信息</div>
+        <div class="rows">
+          <div class="row"><span class="k">数据频率</span><span class="v" id="meta-hz">--</span></div>
+          <div class="row"><span class="k">采样次数</span><span class="v" id="meta-samples">0</span></div>
+          <div class="row"><span class="k">页面时间</span><span class="v" id="meta-time">--</span></div>
+        </div>
+        <div class="note">桌面浏览器预览：访问 <span class="dim">?demo=1</span> 可查看模拟数据演示。</div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <button id="copy-btn" class="btn ghost">复制当前数据</button>
+      <button id="reset-btn" class="btn ghost">重新授权</button>
+    </footer>
+  </div>
+  <script>
+  (function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var demo = (function () {
+      try { return new URLSearchParams(location.search).has("demo"); } catch (e) { return false; }
+    })();
+
+    function fmt(v, d) {
+      d = (d === undefined ? 2 : d);
+      if (v === null || v === undefined || !isFinite(v)) return "--";
+      return Number(v).toFixed(d);
+    }
+
+    var state = {
+      acc: { x: 0, y: 0, z: 0, has: false },
+      gyro: { x: 0, y: 0, z: 0, has: false },
+      mag: { x: 0, y: 0, z: 0, has: false },
+      orient: { alpha: null, beta: null, gamma: null, heading: null, absolute: false, has: false },
+      gps: { lat: null, lon: null, alt: null, altAcc: null, speed: null, heading: null, acc: null, has: false, ts: 0 },
+      temp: { env: null, humidity: null, apparent: null, device: null }
+    };
+
+    var sampleCount = 0;
+    var prevSampleCount = 0;
+    var hz = 0;
+    var running = false;
+    var gyroApiActive = false;
+    var magApiActive = false;
+    var gyroSensor = null;
+    var magSensor = null;
+    var geoWatchId = null;
+    var demoTimer = null;
+    var lastWeatherAt = 0;
+
+    var SENSOR_UI = {
+      acc:  { x: "acc-x", y: "acc-y", z: "acc-z", fx: "acc-fx", fy: "acc-fy", fz: "acc-fz", mag: "acc-mag", g: "acc-g", src: "src-acc", range: 20 },
+      gyro: { x: "gyro-x", y: "gyro-y", z: "gyro-z", fx: "gyro-fx", fy: "gyro-fy", fz: "gyro-fz", mag: "gyro-mag", g: null, src: "src-gyro", range: 360 },
+      mag:  { x: "mag-x", y: "mag-y", z: "mag-z", fx: "mag-fx", fy: "mag-fy", fz: "mag-fz", mag: "mag-mag", g: null, src: "src-mag", range: 100 }
+    };
+
+    var STATUS = {
+      idle: { cls: "gray", label: "待启动" },
+      requesting: { cls: "blue", label: "请求中" },
+      running: { cls: "green", label: "运行中" },
+      unsupported: { cls: "red", label: "不支持" },
+      denied: { cls: "red", label: "被拒绝" },
+      nodata: { cls: "amber", label: "无数据" },
+      error: { cls: "red", label: "出错" }
+    };
+
+    var statusMap = { gps: "idle", acc: "idle", gyro: "idle", mag: "idle", temp: "idle" };
+
+    function setStatus(key, st) {
+      var s = STATUS[st] || STATUS.idle;
+      statusMap[key] = st;
+      var dot = $("dot-" + key);
+      var lab = $("lab-" + key);
+      if (dot) dot.className = "dot " + s.cls;
+      if (lab) lab.textContent = s.label;
+    }
+
+    function setSrc(key, text) {
+      var el = $(SENSOR_UI[key].src);
+      if (el) el.textContent = text || "";
+    }
+
+    function setBar(fill, value, range) {
+      var el = $(fill);
+      if (!el) return;
+      var pct = Math.max(0, Math.min(100, Math.abs(value) / range * 100));
+      if (value >= 0) { el.style.left = "50%"; el.style.width = pct + "%"; }
+      else { el.style.left = (50 - pct) + "%"; el.style.width = pct + "%"; }
+    }
+
+    function renderSensor(key, v) {
+      var u = SENSOR_UI[key];
+      var ax;
+      ["x", "y", "z"].forEach(function (a) {
+        ax = $(u[a]); if (ax) ax.textContent = fmt(v[a]);
+        setBar(u["f" + a], v[a], u.range);
+      });
+      var m = Math.hypot(v.x || 0, v.y || 0, v.z || 0);
+      ax = $(u.mag); if (ax) ax.textContent = fmt(m);
+      if (u.g) { ax = $(u.g); if (ax) ax.textContent = fmt(m / 9.80665, 3); }
+    }
+
+    function toDMS(deg) {
+      if (!isFinite(deg)) return "--";
+      var abs = Math.abs(deg);
+      var d = Math.floor(abs);
+      var mf = (abs - d) * 60;
+      var m = Math.floor(mf);
+      var s = (mf - m) * 60;
+      return d + "°" + m + "′" + s.toFixed(1) + "″";
+    }
+
+    function dirName(deg) {
+      var names = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"];
+      var idx = Math.round(((deg % 360) + 360) % 360 / 45) % 8;
+      return names[idx];
+    }
+
+    function formatTime(ts) {
+      var d = new Date(ts);
+      function p(n) { return (n < 10 ? "0" : "") + n; }
+      return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    }
+
+    function renderHeading() {
+      var h = state.orient.heading;
+      var degEl = $("heading-deg");
+      var dirEl = $("heading-dir");
+      var arrow = $("compass-arrow");
+      if (h === null || !isFinite(h)) {
+        if (degEl) degEl.textContent = "---";
+        if (dirEl) dirEl.textContent = "无方向数据";
+        if (arrow) arrow.style.transform = "rotate(0deg)";
+      } else {
+        var n = ((h % 360) + 360) % 360;
+        if (degEl) degEl.textContent = fmt(n, 1);
+        if (dirEl) dirEl.textContent = dirName(n);
+        if (arrow) arrow.style.transform = "rotate(" + n + "deg)";
+      }
+      var cube = $("cube");
+      if (cube) {
+        var b = state.orient.beta || 0;
+        var g = state.orient.gamma || 0;
+        cube.style.transform = "rotateX(" + (-b) + "deg) rotateY(" + g + "deg)";
+      }
+    }
+
+    function renderGPS() {
+      var g = state.gps;
+      var el = function (id) { return $(id); };
+      el("gps-lat-dec").textContent = g.lat == null ? "--" : g.lat.toFixed(6);
+      el("gps-lat-dms").textContent = g.lat == null ? "--" : toDMS(g.lat) + " " + (g.lat >= 0 ? "N" : "S");
+      el("gps-lon-dec").textContent = g.lon == null ? "--" : g.lon.toFixed(6);
+      el("gps-lon-dms").textContent = g.lon == null ? "--" : toDMS(g.lon) + " " + (g.lon >= 0 ? "E" : "W");
+      el("gps-alt").textContent = g.alt == null ? "--" : fmt(g.alt, 1) + " m";
+      el("gps-alt-ft").textContent = g.alt == null ? "--" : fmt(g.alt * 3.28084, 0) + " ft";
+      el("gps-speed").textContent = g.speed == null ? "--" : fmt(g.speed * 3.6, 1) + " km/h";
+      el("gps-speed-ms").textContent = g.speed == null ? "--" : fmt(g.speed, 2) + " m/s";
+      el("gps-heading").textContent = g.heading == null ? "--" : fmt(g.heading, 1) + "°";
+      el("gps-acc").textContent = g.acc == null ? "--" : "±" + fmt(g.acc, 1) + " m";
+      el("gps-time").textContent = g.ts ? formatTime(g.ts) : "--";
+    }
+
+    function renderTemp() {
+      var t = state.temp;
+      $("temp-env").textContent = t.env == null ? "--" : fmt(t.env, 1) + " °C";
+      $("temp-apparent").textContent = t.apparent == null ? "--" : fmt(t.apparent, 1) + " °C";
+      $("temp-humidity").textContent = t.humidity == null ? "--" : fmt(t.humidity, 0) + " %";
+      $("temp-device").textContent = "--";
+    }
+
+    function renderMeta() {
+      $("meta-hz").textContent = fmt(hz, 1) + " Hz";
+      $("meta-samples").textContent = String(sampleCount);
+      $("meta-time").textContent = formatTime(Date.now());
+    }
+
+    function render() {
+      renderSensor("acc", state.acc);
+      renderSensor("gyro", state.gyro);
+      renderSensor("mag", state.mag);
+      renderHeading();
+      renderGPS();
+      renderTemp();
+      renderMeta();
+    }
+    function setBanner(text, type) {
+      var b = $("banner");
+      if (!text) { b.className = "banner hidden"; b.textContent = ""; return; }
+      b.className = "banner " + (type || "info");
+      b.textContent = text;
+    }
+
+    function updateStartBtn() {
+      var b = $("start-btn");
+      if (running) { b.textContent = "运行中"; b.disabled = true; b.classList.add("disabled"); }
+    }
+
+    function startGPS() {
+      setStatus("gps", "requesting");
+      if (!navigator.geolocation) { setStatus("gps", "unsupported"); setBanner("此浏览器不支持定位", "warn"); return; }
+      geoWatchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 15000
+      });
+    }
+
+    function onPosition(p) {
+      var c = p.coords;
+      state.gps = {
+        lat: c.latitude, lon: c.longitude, alt: c.altitude,
+        altAcc: c.altitudeAccuracy, speed: c.speed, heading: c.heading,
+        acc: c.accuracy, has: true, ts: Date.now()
+      };
+      setStatus("gps", "running");
+      maybeFetchWeather(c.latitude, c.longitude);
+    }
+
+    function onPositionError(err) {
+      if (err && (err.code === 1)) { setStatus("gps", "denied"); setBanner("定位权限被拒绝：请在系统设置中允许访问位置", "err"); }
+      else { setStatus("gps", "error"); setBanner("定位失败：" + (err && err.message ? err.message : "未知错误"), "warn"); }
+    }
+
+    function maybeFetchWeather(lat, lon) {
+      if (demo) return;
+      var now = Date.now();
+      if (now - lastWeatherAt < 5 * 60 * 1000) return;
+      lastWeatherAt = now;
+      setStatus("temp", "requesting");
+      var url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon +
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature&timezone=auto";
+      fetch(url, { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (j) {
+          var c = j && j.current;
+          if (!c) throw new Error("no current");
+          state.temp.env = c.temperature_2m;
+          state.temp.humidity = c.relative_humidity_2m;
+          state.temp.apparent = c.apparent_temperature;
+          setStatus("temp", "running");
+        })
+        .catch(function () { setStatus("temp", "error"); });
+    }
+
+    function onMotion(e) {
+      var t = performance.now();
+      sampleCount++;
+      var a = e.accelerationIncludingGravity || e.acceleration;
+      if (a && a.x != null) {
+        state.acc = { x: a.x, y: a.y, z: a.z, has: true, ts: t };
+        setStatus("acc", "running");
+        setSrc("acc", "devicemotion（含重力）");
+      }
+      if (!gyroApiActive && e.rotationRate) {
+        var r = e.rotationRate;
+        if (r.alpha != null || r.beta != null || r.gamma != null) {
+          state.gyro = { x: r.beta || 0, y: r.gamma || 0, z: r.alpha || 0, has: true, ts: t };
+          setStatus("gyro", "running");
+          setSrc("gyro", "devicemotion rotationRate");
+        }
+      }
+    }
+
+    function onOrient(e) {
+      var alpha = e.alpha;
+      var heading = alpha;
+      if (typeof e.webkitCompassHeading === "number" && isFinite(e.webkitCompassHeading)) {
+        heading = e.webkitCompassHeading;
+      }
+      state.orient = {
+        alpha: alpha, beta: e.beta, gamma: e.gamma,
+        heading: heading, absolute: !!e.absolute, has: true
+      };
+    }
+
+    function startGyroSensor() {
+      if (typeof Gyroscope === "undefined") { setSrc("gyro", "devicemotion rotationRate"); return; }
+      try {
+        gyroSensor = new Gyroscope({ frequency: 30 });
+        gyroSensor.addEventListener("reading", function () {
+          gyroApiActive = true;
+          state.gyro = {
+            x: gyroSensor.x * 180 / Math.PI,
+            y: gyroSensor.y * 180 / Math.PI,
+            z: gyroSensor.z * 180 / Math.PI,
+            has: true, ts: performance.now()
+          };
+          setStatus("gyro", "running");
+          setSrc("gyro", "Gyroscope API");
+        });
+        gyroSensor.addEventListener("error", function () {
+          gyroApiActive = false;
+          gyroSensor = null;
+          setSrc("gyro", "devicemotion rotationRate");
+        });
+        gyroSensor.start();
+      } catch (e) {
+        gyroApiActive = false;
+        gyroSensor = null;
+        setSrc("gyro", "devicemotion rotationRate");
+      }
+    }
+
+    function startMagnetometer() {
+      setStatus("mag", "requesting");
+      if (typeof Magnetometer === "undefined") {
+        setStatus("mag", "unsupported");
+        setSrc("mag", "浏览器不支持原始磁场，已用指南针航向代替");
+        return;
+      }
+      var done = function () {
+        try {
+          magSensor = new Magnetometer({ frequency: 30 });
+          magSensor.addEventListener("reading", function () {
+            magApiActive = true;
+            state.mag = { x: magSensor.x, y: magSensor.y, z: magSensor.z, has: true, ts: performance.now() };
+            setStatus("mag", "running");
+            setSrc("mag", "Magnetometer API");
+          });
+          magSensor.addEventListener("error", function (e) {
+            magApiActive = false;
+            if (e && e.error && (e.error.name === "NotAllowedError" || e.error.name === "SecurityError")) {
+              setStatus("mag", "denied");
+              setSrc("mag", "磁力计权限被拒绝");
+            } else {
+              setStatus("mag", "error");
+              setSrc("mag", "Magnetometer 读取失败");
+            }
+          });
+          magSensor.start();
+        } catch (e2) {
+          if (e2 && (e2.name === "NotAllowedError" || e2.name === "SecurityError")) {
+            setStatus("mag", "denied");
+            setSrc("mag", "磁力计权限被拒绝");
+          } else {
+            setStatus("mag", "unsupported");
+            setSrc("mag", "Magnetometer 不可用");
+          }
+        }
+      };
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "magnetometer" }).then(function (s) {
+          if (s && s.state === "denied") {
+            setStatus("mag", "denied");
+            setSrc("mag", "磁力计权限被拒绝");
+          } else {
+            done();
+          }
+        }).catch(function () { done(); });
+      } else {
+        done();
+      }
+    }
+
+    function startNoDataWatch() {
+      setTimeout(function () {
+        if (statusMap.acc === "requesting" && !state.acc.has) setStatus("acc", "nodata");
+        if (statusMap.gyro === "requesting" && !state.gyro.has) setStatus("gyro", "nodata");
+        if (statusMap.mag === "requesting" && !state.mag.has && !magApiActive) setStatus("mag", "nodata");
+        if (!state.orient.has && !demo) {
+          $("heading-deg").textContent = "---";
+          $("heading-dir").textContent = "无方向数据";
+        }
+      }, 5000);
+    }
+    function start() {
+      if (running) return;
+      running = true;
+      updateStartBtn();
+
+      if (demo) { startDemo(); return; }
+
+      setBanner("正在请求传感器权限…", "info");
+      setStatus("acc", "requesting");
+      setStatus("gyro", "requesting");
+
+      var req1 = Promise.resolve();
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        req1 = DeviceOrientationEvent.requestPermission().then(function (p) {
+          if (p !== "granted") setBanner("方向传感器权限未授权，指南针/磁场航向可能不可用", "warn");
+        }).catch(function (e) { setBanner("方向权限请求失败：" + e.message, "warn"); });
+      }
+      var req2 = Promise.resolve();
+      if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        req2 = DeviceMotionEvent.requestPermission().then(function (p) {
+          if (p !== "granted") setBanner("运动传感器权限未授权，加速度计/陀螺仪可能不可用", "warn");
+        }).catch(function (e) { setBanner("运动权限请求失败：" + e.message, "warn"); });
+      }
+
+      Promise.all([req1, req2]).then(function () {
+        window.addEventListener("deviceorientationabsolute", onOrient);
+        window.addEventListener("deviceorientation", onOrient);
+        window.addEventListener("devicemotion", onMotion);
+        startGyroSensor();
+        startMagnetometer();
+        startGPS();
+        startNoDataWatch();
+        setBanner("传感器已启动。iPhone 请用 HTTPS 地址（GitHub Pages）打开。", "info");
+        window.setTimeout(function () { if (!state.gps.has && !demo) setBanner("定位仍在获取中，可到空旷处或检查定位权限", "warn"); }, 6000);
+      });
+    }
+
+    function startDemo() {
+      setStatus("acc", "running");
+      setStatus("gyro", "running");
+      setStatus("mag", "running");
+      setStatus("gps", "running");
+      setStatus("temp", "running");
+      setBanner("演示模式：使用模拟传感器数据，非真实读数", "info");
+      state.gps = { lat: 39.9042, lon: 116.4074, alt: 43.5, altAcc: 5, speed: 1.2, heading: 95, acc: 6, has: true, ts: Date.now() };
+      state.temp = { env: 26.5, humidity: 40, apparent: 27.1, device: null };
+      var t0 = performance.now();
+      demoTimer = setInterval(function () {
+        var t = (performance.now() - t0) / 1000;
+        state.acc = { x: Math.sin(t * 1.3) * 1.5, y: Math.cos(t * 0.9) * 0.8, z: 9.80665 + Math.sin(t * 0.7) * 0.3, has: true };
+        state.gyro = { x: Math.sin(t * 2.0) * 40, y: Math.cos(t * 1.7) * 35, z: Math.sin(t * 1.1) * 25, has: true };
+        state.mag = { x: Math.sin(t * 0.4) * 25 + 18, y: Math.cos(t * 0.5) * 20 - 8, z: Math.sin(t * 0.3) * 35 + 12, has: true };
+        state.orient = { alpha: (performance.now() / 50) % 360, beta: Math.sin(t * 0.5) * 20, gamma: Math.cos(t * 0.4) * 15, heading: (performance.now() / 50) % 360, absolute: true, has: true };
+        sampleCount++;
+      }, 33);
+    }
+
+    function snapshot() {
+      return {
+        time: new Date().toISOString(),
+        accelerometer: state.acc,
+        gyroscope: state.gyro,
+        magnetometer: state.mag,
+        orientation: state.orient,
+        location: state.gps,
+        temperature: state.temp,
+        rateHz: hz
+      };
+    }
+
+    function copy() {
+      var s = JSON.stringify(snapshot(), null, 2);
+      var btn = $("copy-btn");
+      var finish = function (ok) {
+        if (btn) { btn.textContent = ok ? "已复制" : "复制失败"; btn.style.background = ok ? "rgba(48,209,88,.25)" : "rgba(255,69,58,.25)"; }
+        window.setTimeout(function () { if (btn) { btn.textContent = "复制当前数据"; btn.style.background = ""; } }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(s).then(function () { finish(true); }, function () { finish(false); });
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = s;
+        ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); finish(true); } catch (e) { finish(false); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    $("start-btn").addEventListener("click", start);
+    $("copy-btn").addEventListener("click", copy);
+    $("reset-btn").addEventListener("click", function () { location.reload(); });
+
+    setInterval(function () {
+      hz = sampleCount - prevSampleCount;
+      prevSampleCount = sampleCount;
+    }, 1000);
+
+    var lastRender = 0;
+    function loop(t) {
+      requestAnimationFrame(loop);
+      if (t - lastRender < 33) return;
+      lastRender = t;
+      render();
+    }
+    requestAnimationFrame(loop);
+
+    if (demo) start();
+  })();
+  </script>
+</body>
+</html>

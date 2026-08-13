@@ -1,0 +1,15 @@
+{
+  "name": "TurtleIMU 传感器",
+  "short_name": "TurtleIMU",
+  "description": "实时读取陀螺仪、加速度计、磁力计、温度、速度、经纬度、高度",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

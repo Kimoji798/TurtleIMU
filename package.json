@@ -1,0 +1,21 @@
+{
+  "name": "ttimu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TurtleIMU - realtime phone sensor monitor (gyro/accel/magnetometer/temperature/speed/location/altitude)",
+  "scripts": {
+    "serve": "npx serve www",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/android": "^7.0.0"
+  },
+  "devDependencies": {}
+}
