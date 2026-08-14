@@ -82,4 +82,5 @@ npx cap open ios        # 或 npx cap open android
 
 - `Resource not accessible by integration` / `Get Pages site failed: Not Found`：仓库还没启用 Pages。打开 `Settings → Pages → Source` 选 `GitHub Actions` → `Save`（只需一次），再回 `Actions` 页对失败运行点 `Re-run all jobs`。
 - 仓库是 Private 时 Pages 需要付费套餐，改成 Public 即可用。
+- `Branch "main" is not allowed to deploy to github-pages due to environment protection rules`：打开 `Settings → Environments → github-pages → Deployment branches and tags` 选 `All branches` → `Save`，再回 `Actions` 页 `Re-run all jobs`。
 - `Node.js 20 is deprecated` 只是警告，不影响部署。

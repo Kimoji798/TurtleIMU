@@ -108,21 +108,22 @@
       transition: transform .1s linear; transform-origin: 50% 50%;
     }
 
-    .cube-wrap { perspective: 700px; flex: 0 0 auto; }
-    .cube { position: relative; width: 82px; height: 82px; transform-style: preserve-3d; }
-    .face {
-      position: absolute; inset: 0; border-radius: 6px;
-      border: 1px solid rgba(255,255,255,.35);
+    .phone-wrap { perspective: 900px; flex: 0 0 auto; width: 86px; height: 150px; display: flex; align-items: center; justify-content: center; }
+    .phone { position: relative; width: 72px; height: 140px; transform-style: preserve-3d; }
+    .phone-face {
+      position: absolute; left: 50%; top: 50%;
+      border: 1px solid rgba(255,255,255,.45);
       background: rgba(255,255,255,.08);
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: rgba(255,255,255,.55);
+      font-size: 11px; color: rgba(255,255,255,.75);
+      border-radius: 10px;
     }
-    .face.front  { transform: translateZ(41px); }
-    .face.back   { transform: rotateY(180deg) translateZ(41px); }
-    .face.right  { transform: rotateY(90deg) translateZ(41px); }
-    .face.left   { transform: rotateY(-90deg) translateZ(41px); }
-    .face.top    { transform: rotateX(90deg) translateZ(41px); }
-    .face.bottom { transform: rotateX(-90deg) translateZ(41px); }
+    .phone-face.front  { width: 72px; height: 140px; transform: translate(-50%, -50%) translateZ(5px); background: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,.16), rgba(255,255,255,.05)); }
+    .phone-face.back   { width: 72px; height: 140px; transform: translate(-50%, -50%) rotateY(180deg) translateZ(5px); }
+    .phone-face.right  { width: 10px; height: 140px; transform: translate(-50%, -50%) rotateY(90deg) translateZ(36px); }
+    .phone-face.left   { width: 10px; height: 140px; transform: translate(-50%, -50%) rotateY(-90deg) translateZ(36px); }
+    .phone-face.top    { width: 72px; height: 10px; transform: translate(-50%, -50%) rotateX(90deg) translateZ(70px); }
+    .phone-face.bottom { width: 72px; height: 10px; transform: translate(-50%, -50%) rotateX(-90deg) translateZ(70px); }
 
     .status-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .chip {
@@ -203,39 +204,29 @@
       <div class="compass">
         <div class="compass-value"><span class="num" id="heading-deg">---</span><span class="deg">°</span></div>
         <div class="compass-dir" id="heading-dir">未启动</div>
-        <span class="compass-arrow" id="compass-arrow">➤</span>
+        <span class="compass-arrow" id="compass-arrow">↑</span>
       </div>
-      <div class="cube-wrap">
-        <div class="cube" id="cube">
-          <div class="face front">X</div>
-          <div class="face back">X</div>
-          <div class="face right">Y</div>
-          <div class="face left">Y</div>
-          <div class="face top">Z</div>
-          <div class="face bottom">Z</div>
+      <div class="phone-wrap">
+        <div class="phone" id="phone">
+          <div class="phone-face front">Z</div>
+          <div class="phone-face back">Z</div>
+          <div class="phone-face right">X</div>
+          <div class="phone-face left">X</div>
+          <div class="phone-face top">Y</div>
+          <div class="phone-face bottom">Y</div>
         </div>
       </div>
     </section>
 
     <div class="status-row">
       <div class="chip"><span class="dot" id="dot-gps"></span>定位<span class="st" id="lab-gps">待启动</span></div>
-      <div class="chip"><span class="dot" id="dot-acc"></span>加速度计<span class="st" id="lab-acc">待启动</span></div>
       <div class="chip"><span class="dot" id="dot-gyro"></span>陀螺仪<span class="st" id="lab-gyro">待启动</span></div>
+      <div class="chip"><span class="dot" id="dot-acc"></span>加速度计<span class="st" id="lab-acc">待启动</span></div>
       <div class="chip"><span class="dot" id="dot-mag"></span>磁力计<span class="st" id="lab-mag">待启动</span></div>
       <div class="chip"><span class="dot" id="dot-temp"></span>温度<span class="st" id="lab-temp">待启动</span></div>
     </div>
 
     <main class="grid">
-      <section class="card">
-        <div class="card-head"><h2>加速度计</h2></div>
-        <div class="unit">m/s²（含重力）</div>
-        <div class="axis"><span class="dot x"></span><span class="ax">X</span><div class="track"><div class="fill x" id="acc-fx"></div><span class="mid"></span></div><span class="val" id="acc-x">--</span></div>
-        <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="acc-fy"></div><span class="mid"></span></div><span class="val" id="acc-y">--</span></div>
-        <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="acc-fz"></div><span class="mid"></span></div><span class="val" id="acc-z">--</span></div>
-        <div class="mag">合成 <b id="acc-mag">--</b> m/s² · <b id="acc-g">--</b> g</div>
-        <div class="src" id="src-acc"></div>
-      </section>
-
       <section class="card">
         <div class="card-head"><h2>陀螺仪</h2></div>
         <div class="unit">°/s（绕设备 X / Y / Z 轴）</div>
@@ -244,6 +235,16 @@
         <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="gyro-fz"></div><span class="mid"></span></div><span class="val" id="gyro-z">--</span></div>
         <div class="mag">合成 <b id="gyro-mag">--</b> °/s</div>
         <div class="src" id="src-gyro"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>加速度计</h2></div>
+        <div class="unit">m/s²（含重力）</div>
+        <div class="axis"><span class="dot x"></span><span class="ax">X</span><div class="track"><div class="fill x" id="acc-fx"></div><span class="mid"></span></div><span class="val" id="acc-x">--</span></div>
+        <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="acc-fy"></div><span class="mid"></span></div><span class="val" id="acc-y">--</span></div>
+        <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="acc-fz"></div><span class="mid"></span></div><span class="val" id="acc-z">--</span></div>
+        <div class="mag">合成 <b id="acc-mag">--</b> m/s² · <b id="acc-g">--</b> g</div>
+        <div class="src" id="src-acc"></div>
       </section>
 
       <section class="card">
@@ -422,13 +423,17 @@
         var n = ((h % 360) + 360) % 360;
         if (degEl) degEl.textContent = fmt(n, 1);
         if (dirEl) dirEl.textContent = dirName(n);
-        if (arrow) arrow.style.transform = "rotate(" + n + "deg)";
+        if (arrow) arrow.style.transform = "rotate(" + (-n) + "deg)";
       }
-      var cube = $("cube");
-      if (cube) {
-        var b = state.orient.beta || 0;
-        var g = state.orient.gamma || 0;
-        cube.style.transform = "rotateX(" + (-b) + "deg) rotateY(" + g + "deg)";
+      var phone = $("phone");
+      if (phone) {
+        var b = state.orient.beta;
+        var g = state.orient.gamma;
+        if (state.orient.has && b != null && g != null && isFinite(b) && isFinite(g)) {
+          phone.style.transform = "rotateX(" + (-b) + "deg) rotateY(" + g + "deg)";
+        } else {
+          phone.style.transform = "rotateX(-24deg) rotateY(-32deg)";
+        }
       }
     }
 
@@ -480,7 +485,8 @@
 
     function updateStartBtn() {
       var b = $("start-btn");
-      if (running) { b.textContent = "运行中"; b.disabled = true; b.classList.add("disabled"); }
+      if (running) { b.textContent = "关闭传感器"; }
+      else { b.textContent = "启动传感器"; }
     }
 
     function startGPS() {
@@ -642,6 +648,7 @@
 
     function startNoDataWatch() {
       setTimeout(function () {
+        if (!running) return;
         if (statusMap.acc === "requesting" && !state.acc.has) setStatus("acc", "nodata");
         if (statusMap.gyro === "requesting" && !state.gyro.has) setStatus("gyro", "nodata");
         if (statusMap.mag === "requesting" && !state.mag.has && !magApiActive) setStatus("mag", "nodata");
@@ -676,6 +683,7 @@
       }
 
       Promise.all([req1, req2]).then(function () {
+        if (!running) return;
         window.addEventListener("deviceorientationabsolute", onOrient);
         window.addEventListener("deviceorientation", onOrient);
         window.addEventListener("devicemotion", onMotion);
@@ -686,6 +694,38 @@
         setBanner("传感器已启动。iPhone 请用 HTTPS 地址（GitHub Pages）打开。", "info");
         window.setTimeout(function () { if (!state.gps.has && !demo) setBanner("定位仍在获取中，可到空旷处或检查定位权限", "warn"); }, 6000);
       });
+    }
+
+    function stop() {
+      if (!running) return;
+      running = false;
+      updateStartBtn();
+
+      if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
+
+      if (geoWatchId != null && navigator.geolocation && navigator.geolocation.clearWatch) {
+        navigator.geolocation.clearWatch(geoWatchId);
+      }
+      geoWatchId = null;
+
+      if (gyroSensor) { try { gyroSensor.stop(); } catch (e) {} gyroSensor = null; }
+      if (magSensor) { try { magSensor.stop(); } catch (e) {} magSensor = null; }
+      gyroApiActive = false;
+      magApiActive = false;
+
+      window.removeEventListener("deviceorientationabsolute", onOrient);
+      window.removeEventListener("deviceorientation", onOrient);
+      window.removeEventListener("devicemotion", onMotion);
+
+      setStatus("gps", "idle");
+      setStatus("acc", "idle");
+      setStatus("gyro", "idle");
+      setStatus("mag", "idle");
+      setStatus("temp", "idle");
+      setSrc("acc", "");
+      setSrc("gyro", "");
+      setSrc("mag", "");
+      setBanner("传感器已关闭", "info");
     }
 
     function startDemo() {
@@ -741,7 +781,7 @@
       }
     }
 
-    $("start-btn").addEventListener("click", start);
+    $("start-btn").addEventListener("click", function () { if (running) { stop(); } else { start(); } });
     $("copy-btn").addEventListener("click", copy);
     $("reset-btn").addEventListener("click", function () { location.reload(); });
 
@@ -753,7 +793,7 @@
     var lastRender = 0;
     function loop(t) {
       requestAnimationFrame(loop);
-      if (t - lastRender < 33) return;
+      if (t - lastRender < 250) return;
       lastRender = t;
       render();
     }
