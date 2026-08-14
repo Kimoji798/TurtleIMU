@@ -4,8 +4,8 @@ function data = parse_ttimu(file, doPlot)
 % 用法：
 %   推荐直接运行 main_parse_ttimu.m（主脚本，自动选文件并绘图）；
 %   本文件为解析函数，也可单独调用：
-%   data = parse_ttimu('TTimu_20260814_123456.bin');       % 只解析
-%   data = parse_ttimu('TTimu_20260814_123456.bin', true); % 解析并绘图
+%   data = parse_ttimu('TurtleIMU_20260814_123456.bin');   % 只解析
+%   data = parse_ttimu('TurtleIMU_20260814_123456.bin', true); % 解析并绘图
 %
 % 返回 struct data，主要字段：
 %   data.t         采样时刻（epoch 毫秒，double 列向量）
@@ -76,27 +76,27 @@ data.startPerf = startPerf;
 data.recSize  = double(recSize);
 data.n        = n;
 
-data.t       = typecast(F(1:8, :),  'double');   % epoch 毫秒
+data.t       = typecast(reshape(F(1:8, :), [], 1), 'double');   % epoch 毫秒
 data.timeSec = (data.t - data.t(1)) / 1000;      % 相对秒
-data.flags   = typecast(F(85:88, :), 'uint32');
+data.flags   = typecast(reshape(F(85:88, :), [], 1), 'uint32');
 
-data.gyro.x = typecast(F(9:12, :),  'single');
-data.gyro.y = typecast(F(13:16, :), 'single');
-data.gyro.z = typecast(F(17:20, :), 'single');
-data.acc.x  = typecast(F(21:24, :), 'single');
-data.acc.y  = typecast(F(25:28, :), 'single');
-data.acc.z  = typecast(F(29:32, :), 'single');
-data.mag.x  = typecast(F(33:36, :), 'single');
-data.mag.y  = typecast(F(37:40, :), 'single');
-data.mag.z  = typecast(F(41:44, :), 'single');
-data.att.pitch   = typecast(F(45:48, :), 'single');
-data.att.roll    = typecast(F(49:52, :), 'single');
-data.att.azimuth = typecast(F(53:56, :), 'single');
-data.gps.lat  = typecast(F(57:64, :), 'double');
-data.gps.lon  = typecast(F(65:72, :), 'double');
-data.gps.alt  = typecast(F(73:76, :), 'single');
-data.gps.speed = typecast(F(77:80, :), 'single');
-data.temp.env = typecast(F(81:84, :), 'single');
+data.gyro.x = typecast(reshape(F(9:12, :), [], 1), 'single');
+data.gyro.y = typecast(reshape(F(13:16, :), [], 1), 'single');
+data.gyro.z = typecast(reshape(F(17:20, :), [], 1), 'single');
+data.acc.x  = typecast(reshape(F(21:24, :), [], 1), 'single');
+data.acc.y  = typecast(reshape(F(25:28, :), [], 1), 'single');
+data.acc.z  = typecast(reshape(F(29:32, :), [], 1), 'single');
+data.mag.x  = typecast(reshape(F(33:36, :), [], 1), 'single');
+data.mag.y  = typecast(reshape(F(37:40, :), [], 1), 'single');
+data.mag.z  = typecast(reshape(F(41:44, :), [], 1), 'single');
+data.att.pitch   = typecast(reshape(F(45:48, :), [], 1), 'single');
+data.att.roll    = typecast(reshape(F(49:52, :), [], 1), 'single');
+data.att.azimuth = typecast(reshape(F(53:56, :), [], 1), 'single');
+data.gps.lat  = typecast(reshape(F(57:64, :), [], 1), 'double');
+data.gps.lon  = typecast(reshape(F(65:72, :), [], 1), 'double');
+data.gps.alt  = typecast(reshape(F(73:76, :), [], 1), 'single');
+data.gps.speed = typecast(reshape(F(77:80, :), [], 1), 'single');
+data.temp.env = typecast(reshape(F(81:84, :), [], 1), 'single');
 
 % ---- 有效性掩码（对应 flags 位）----
 ok.gyro = bitand(data.flags, 1)  > 0;
@@ -116,6 +116,9 @@ fprintf('帧数: %d   时长: %.2f s   设定频率: %d Hz   实际: %.2f Hz\n',
 fprintf('有效帧占比: 陀螺仪 %.1f%%  加速度 %.1f%%  磁力计 %.1f%%  姿态 %.1f%%  GPS %.1f%%  温度 %.1f%%\n', ...
     100 * nnz(ok.gyro) / n, 100 * nnz(ok.acc) / n, 100 * nnz(ok.mag) / n, ...
     100 * nnz(ok.att) / n, 100 * nnz(ok.gps) / n, 100 * nnz(ok.temp) / n);
+fprintf('数据有无: 陀螺仪 %s  加速度 %s  磁力计 %s  姿态角 %s  GPS %s  温度 %s\n', ...
+    tf(any(ok.gyro)), tf(any(ok.acc)), tf(any(ok.mag)), ...
+    tf(any(ok.att)), tf(any(ok.gps)), tf(any(ok.temp)));
 if data.demo, fprintf('注意: 该文件为演示模式（模拟数据）。\n'); end
 fprintf('================================\n\n');
 
@@ -172,21 +175,28 @@ else
 end
 title('GPS 轨迹'); xlabel('经度 °'); ylabel('纬度 °');
 
-% 6) 高度与速度
+% 6) 高度
 subplot(4, 2, 6); hold on; grid on; box on;
 if any(ok.gps)
-    yyaxis left;
-    plot(t, data.gps.alt, '-'); ylabel('高度 m');
-    yyaxis right;
-    plot(t, data.gps.speed, '-'); ylabel('速度 m/s');
+    plot(t, data.gps.alt, '-');
 else
     text(0.5, 0.5, '无定位数据', 'Units', 'normalized', ...
         'HorizontalAlignment', 'center');
 end
-title('高度 / 速度'); xlabel('时间 s');
+title('高度'); ylabel('高度 m'); xlabel('时间 s');
 
-% 7) 环境温度
+% 7) 速度
 subplot(4, 2, 7); hold on; grid on; box on;
+if any(ok.gps)
+    plot(t, data.gps.speed, '-');
+else
+    text(0.5, 0.5, '无定位数据', 'Units', 'normalized', ...
+        'HorizontalAlignment', 'center');
+end
+title('速度'); ylabel('速度 m/s'); xlabel('时间 s');
+
+% 8) 环境温度
+subplot(4, 2, 8); hold on; grid on; box on;
 if any(ok.temp)
     plot(t, data.temp.env, '.-');
 else
@@ -194,16 +204,6 @@ else
         'HorizontalAlignment', 'center');
 end
 title('环境温度'); ylabel('°C'); xlabel('时间 s');
-
-% 8) 摘要
-subplot(4, 2, 8); axis off;
-s = sprintf(['帧数: %d\n时长: %.2f s\n设定频率: %d Hz\n实际频率: %.2f Hz\n' ...
-    '陀螺仪: %s\n加速度: %s\n磁力计: %s\n姿态角: %s\nGPS: %s\n温度: %s\n演示模式: %s'], ...
-    n, dur, data.rateHz, (n - 1) / max(dur, eps), ...
-    tf(any(ok.gyro)), tf(any(ok.acc)), tf(any(ok.mag)), ...
-    tf(any(ok.att)), tf(any(ok.gps)), tf(any(ok.temp)), tf(data.demo));
-text(0.05, 0.95, s, 'Units', 'normalized', 'VerticalAlignment', 'top', ...
-    'FontName', 'Consolas');
 
 
     function s = tf(v)

@@ -6,7 +6,7 @@
 %   2. 根据需要修改下面的 file 变量（留空则自动选择目录中最新的 .bin 文件）
 %   3. 直接点「运行」：解析数据并绘图
 %
-% 解析结果保存在工作区变量 data 中，常用字段：
+% 设置 saveVar = true 后，解析结果会保存到工作区变量 data，常用字段：
 %   data.timeSec                相对时间（秒）
 %   data.gyro.x / .y / .z       陀螺仪 (°/s)
 %   data.acc.x / .y / .z        加速度 (m/s²，含重力)
@@ -19,8 +19,9 @@
 % 详细文件格式说明见 parse_ttimu.m 文件头注释。
 
 % ---- 用户设置 ----
-file   = '';      % 例如 'TTimu_20260814_211316.bin'；留空则自动选最新 .bin
-doPlot = true;    % true = 解析并绘图；false = 只解析不绘图
+file    = '';     % 例如 'TurtleIMU_20260814_211316.bin'；留空则自动选最新 .bin
+doPlot  = true;   % true = 解析并绘图；false = 只解析不绘图
+saveVar = false;  % true = 把结果保存到工作区变量 data；false = 不保存（默认）
 
 % ---- 自动选择文件 ----
 if isempty(file)
@@ -35,6 +36,10 @@ if isempty(file)
 end
 
 % ---- 解析（并绘图）----
-data = parse_ttimu(file, doPlot);
-
-fprintf('解析完成，结果已保存到工作区变量 data（如 data.gyro、data.att、data.gps）。\n');
+if saveVar
+    data = parse_ttimu(file, doPlot);
+    fprintf('解析完成，结果已保存到工作区变量 data（如 data.gyro、data.att、data.gps）。\n');
+else
+    parse_ttimu(file, doPlot);
+    fprintf('解析完成。如需在工作区保存结果，请把 saveVar 改为 true 后重新运行。\n');
+end
