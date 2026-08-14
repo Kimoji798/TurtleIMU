@@ -82,6 +82,13 @@
     .btn:active { opacity: .8; }
     .btn.disabled { background: #2c2c2e; color: var(--muted); }
     .btn.ghost { background: rgba(255,255,255,.08); color: var(--text); }
+    .rec-ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .rec-ctrl select {
+      appearance: none; background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 10px; font-size: 14px; flex: 0 0 auto;
+    }
+    .rec-ctrl .btn { flex: 1 1 auto; min-width: 120px; }
 
     .banner {
       border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45;
@@ -229,7 +236,6 @@
         <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="gyro-fy"></div><span class="mid"></span></div><span class="val" id="gyro-y">--</span></div>
         <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="gyro-fz"></div><span class="mid"></span></div><span class="val" id="gyro-z">--</span></div>
         <div class="mag">合成 <b id="gyro-mag">--</b> °/s</div>
-        <div class="src" id="src-gyro"></div>
       </section>
 
       <section class="card">
@@ -239,7 +245,6 @@
         <div class="axis"><span class="dot y"></span><span class="ax">Y</span><div class="track"><div class="fill y" id="acc-fy"></div><span class="mid"></span></div><span class="val" id="acc-y">--</span></div>
         <div class="axis"><span class="dot z"></span><span class="ax">Z</span><div class="track"><div class="fill z" id="acc-fz"></div><span class="mid"></span></div><span class="val" id="acc-z">--</span></div>
         <div class="mag">合成 <b id="acc-mag">--</b> m/s² · <b id="acc-g">--</b> g</div>
-        <div class="src" id="src-acc"></div>
       </section>
 
       <section class="card">
@@ -287,6 +292,27 @@
           <div class="row"><span class="k">定位精度</span><span class="v" id="gps-acc">--</span></div>
           <div class="row"><span class="k">更新时间</span><span class="v" id="gps-time">--</span></div>
         </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>数据记录</h2></div>
+        <div class="unit">固定频率统一帧（原始数据）：陀螺仪 · 加速度 · 磁力计 · 姿态角 · 经纬高 · 速度 · 环境温度 · 采样时间</div>
+        <div class="rec-ctrl">
+          <select id="rec-rate" title="采样频率">
+            <option value="10">10 Hz</option>
+            <option value="25">25 Hz</option>
+            <option value="50" selected>50 Hz</option>
+            <option value="100">100 Hz</option>
+          </select>
+          <button id="rec-btn" class="btn">开始记录</button>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">状态</span><span class="v" id="rec-status">未在记录</span></div>
+          <div class="row"><span class="k">时长</span><span class="v" id="rec-time">--</span></div>
+          <div class="row"><span class="k">帧数</span><span class="v" id="rec-count">--</span></div>
+          <div class="row"><span class="k">大小</span><span class="v" id="rec-size">--</span></div>
+        </div>
+        <div class="note">停止后自动下载 .bin 文件；可用仓库内 tools/parse_ttimu.m 在 MATLAB 中解析并绘图。</div>
       </section>
 
       <section class="card">
@@ -355,8 +381,8 @@
     var lastWeatherAt = 0;
 
     var SENSOR_UI = {
-      acc:  { x: "acc-x", y: "acc-y", z: "acc-z", fx: "acc-fx", fy: "acc-fy", fz: "acc-fz", mag: "acc-mag", g: "acc-g", src: "src-acc", range: 20 },
-      gyro: { x: "gyro-x", y: "gyro-y", z: "gyro-z", fx: "gyro-fx", fy: "gyro-fy", fz: "gyro-fz", mag: "gyro-mag", g: null, src: "src-gyro", range: 360 },
+      acc:  { x: "acc-x", y: "acc-y", z: "acc-z", fx: "acc-fx", fy: "acc-fy", fz: "acc-fz", mag: "acc-mag", g: "acc-g", range: 20 },
+      gyro: { x: "gyro-x", y: "gyro-y", z: "gyro-z", fx: "gyro-fx", fy: "gyro-fy", fz: "gyro-fz", mag: "gyro-mag", g: null, range: 360 },
       mag:  { x: "mag-x", y: "mag-y", z: "mag-z", fx: "mag-fx", fy: "mag-fy", fz: "mag-fz", mag: "mag-mag", g: null, src: "src-mag", range: 100 }
     };
 
@@ -641,14 +667,12 @@
       if (a && a.x != null) {
         state.acc = { x: a.x, y: a.y, z: a.z, has: true, ts: t };
         setStatus("acc", "running");
-        setSrc("acc", "devicemotion（含重力）");
       }
       if (!gyroApiActive && e.rotationRate) {
         var r = e.rotationRate;
         if (r.alpha != null || r.beta != null || r.gamma != null) {
           state.gyro = { x: r.alpha || 0, y: r.beta || 0, z: r.gamma || 0, has: true, ts: t };
           setStatus("gyro", "running");
-          setSrc("gyro", "devicemotion rotationRate");
         }
       }
     }
@@ -666,7 +690,7 @@
     }
 
     function startGyroSensor() {
-      if (typeof Gyroscope === "undefined") { setSrc("gyro", "devicemotion rotationRate"); return; }
+      if (typeof Gyroscope === "undefined") { return; }
       try {
         gyroSensor = new Gyroscope({ frequency: 30 });
         gyroSensor.addEventListener("reading", function () {
@@ -678,18 +702,15 @@
             has: true, ts: performance.now()
           };
           setStatus("gyro", "running");
-          setSrc("gyro", "Gyroscope API");
         });
         gyroSensor.addEventListener("error", function () {
           gyroApiActive = false;
           gyroSensor = null;
-          setSrc("gyro", "devicemotion rotationRate");
         });
         gyroSensor.start();
       } catch (e) {
         gyroApiActive = false;
         gyroSensor = null;
-        setSrc("gyro", "devicemotion rotationRate");
       }
     }
 
@@ -820,10 +841,158 @@
       setStatus("gyro", "idle");
       setStatus("mag", "idle");
       setStatus("temp", "idle");
-      setSrc("acc", "");
-      setSrc("gyro", "");
       setSrc("mag", "");
-      setBanner("");
+      var hadRec = recorder && recorder.active;
+      if (hadRec) stopRecording(true);
+      setBanner(hadRec ? "传感器已关闭，记录已停止并下载" : "");
+    }
+
+    // ===== 数据记录：固定频率统一帧 =====
+    var recorder = null;
+    var REC_FRAME_BYTES = 88;
+    var REC_MAX_BYTES = 200 * 1024 * 1024;
+    var REC_MAX_MS = 60 * 60 * 1000;
+    var recLastUI = 0;
+
+    function RecBuf() {
+      this.buf = new ArrayBuffer(1024 * 1024);
+      this.view = new DataView(this.buf);
+      this.len = 0;
+    }
+    RecBuf.prototype.ensure = function (n) {
+      if (this.len + n <= this.buf.byteLength) return;
+      var cap = this.buf.byteLength;
+      while (cap < this.len + n) cap *= 2;
+      var nb = new ArrayBuffer(cap);
+      new Uint8Array(nb).set(new Uint8Array(this.buf, 0, this.len));
+      this.buf = nb;
+      this.view = new DataView(this.buf);
+    };
+
+    function writeRecHeader() {
+      var b = recorder.buf;
+      b.ensure(32);
+      var v = b.view;
+      v.setUint8(0, 0x55);
+      v.setUint8(1, 0xAA);
+      v.setUint8(2, 2);
+      v.setUint8(3, demo ? 1 : 0);
+      v.setUint16(4, REC_FRAME_BYTES, true);
+      v.setUint16(6, recorder.rateHz, true);
+      v.setUint32(8, 0, true);
+      v.setFloat64(12, recorder.startEpoch, true);
+      v.setFloat64(20, recorder.startPerf, true);
+      v.setUint32(28, 0, true);
+      b.len = 32;
+    }
+
+    function startRecording() {
+      if (recorder && recorder.active) return;
+      if (!running) { setBanner("请先点击「启动传感器」再开始记录", "warn"); return; }
+      recorder = {
+        active: true,
+        rateHz: parseInt($("rec-rate").value, 10) || 50,
+        buf: new RecBuf(),
+        count: 0,
+        elapsed: 0,
+        startEpoch: Date.now(),
+        startPerf: performance.now(),
+        timer: null
+      };
+      writeRecHeader();
+      recorder.timer = setInterval(recordTick, Math.round(1000 / recorder.rateHz));
+      updateRecorderUI(true);
+      setBanner("正在记录数据，请保持页面在前台", "info");
+    }
+
+    function recordTick() {
+      if (!recorder || !recorder.active) return;
+      var g = state.gyro, a = state.acc, m = state.mag, o = state.orient, p = state.gps, t = state.temp;
+      var flags = 0;
+      if (g && g.has) flags |= 1;
+      if (a && a.has) flags |= 2;
+      if (m && m.has) flags |= 4;
+      if (o && o.has) flags |= 8;
+      if (p && p.has) flags |= 16;
+      if (t && t.env != null && isFinite(t.env)) flags |= 32;
+      var az = null;
+      if (o && o.has) az = (o.heading != null && isFinite(o.heading)) ? o.heading : o.alpha;
+
+      var b = recorder.buf;
+      b.ensure(REC_FRAME_BYTES);
+      var v = b.view, off = b.len, nan = NaN;
+      v.setFloat64(off, Date.now(), true); off += 8;
+      v.setFloat32(off, (g && g.has) ? g.x : nan, true); off += 4;
+      v.setFloat32(off, (g && g.has) ? g.y : nan, true); off += 4;
+      v.setFloat32(off, (g && g.has) ? g.z : nan, true); off += 4;
+      v.setFloat32(off, (a && a.has) ? a.x : nan, true); off += 4;
+      v.setFloat32(off, (a && a.has) ? a.y : nan, true); off += 4;
+      v.setFloat32(off, (a && a.has) ? a.z : nan, true); off += 4;
+      v.setFloat32(off, (m && m.has) ? m.x : nan, true); off += 4;
+      v.setFloat32(off, (m && m.has) ? m.y : nan, true); off += 4;
+      v.setFloat32(off, (m && m.has) ? m.z : nan, true); off += 4;
+      v.setFloat32(off, (o && o.has && o.beta != null) ? o.beta : nan, true); off += 4;
+      v.setFloat32(off, (o && o.has && o.gamma != null) ? o.gamma : nan, true); off += 4;
+      v.setFloat32(off, (az != null && isFinite(az)) ? az : nan, true); off += 4;
+      v.setFloat64(off, (p && p.has && p.lat != null) ? p.lat : nan, true); off += 8;
+      v.setFloat64(off, (p && p.has && p.lon != null) ? p.lon : nan, true); off += 8;
+      v.setFloat32(off, (p && p.has && p.alt != null) ? p.alt : nan, true); off += 4;
+      v.setFloat32(off, (p && p.has && p.speed != null) ? p.speed : nan, true); off += 4;
+      v.setFloat32(off, (t && t.env != null && isFinite(t.env)) ? t.env : nan, true); off += 4;
+      v.setUint32(off, flags, true); off += 4;
+      b.len = off;
+      recorder.count++;
+      recorder.elapsed = Date.now() - recorder.startEpoch;
+
+      if (b.len >= REC_MAX_BYTES || recorder.elapsed >= REC_MAX_MS) {
+        stopRecording(true);
+        setBanner("记录达到上限，已自动停止并生成文件", "info");
+        return;
+      }
+      updateRecorderUI(false);
+    }
+
+    function stopRecording(withDownload) {
+      if (!recorder || !recorder.active) return;
+      recorder.active = false;
+      if (recorder.timer) { clearInterval(recorder.timer); recorder.timer = null; }
+      if (withDownload) downloadRecording();
+      updateRecorderUI(true);
+    }
+
+    function downloadRecording() {
+      var data = recorder.buf.buf.slice(0, recorder.buf.len);
+      var blob = new Blob([data], { type: "application/octet-stream" });
+      var d = new Date();
+      function p2(n) { return (n < 10 ? "0" : "") + n; }
+      var name = "TTimu_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + "_" +
+        p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + ".bin";
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      var el = $("rec-status");
+      if (el) el.textContent = "已下载 " + name;
+    }
+
+    function updateRecorderUI(force) {
+      var now = performance.now();
+      if (!force && now - recLastUI < 250) return;
+      recLastUI = now;
+      var active = recorder && recorder.active;
+      var btn = $("rec-btn");
+      var sel = $("rec-rate");
+      if (btn) btn.textContent = active ? "停止并下载" : "开始记录";
+      if (sel) sel.disabled = !!active;
+      var el;
+      el = $("rec-status"); if (el) el.textContent = active ? "记录中" : (recorder && recorder.count ? "已停止" : "未在记录");
+      el = $("rec-count"); if (el) el.textContent = recorder ? recorder.count + " 帧" : "--";
+      el = $("rec-size"); if (el) el.textContent = recorder ? fmt(recorder.buf.len / 1024, 1) + " KB" : "--";
+      el = $("rec-time"); if (el) el.textContent = recorder ? ((recorder.elapsed || 0) / 1000).toFixed(1) + " s" : "--";
     }
 
     function startDemo() {
@@ -884,6 +1053,13 @@
     $("start-btn").addEventListener("click", function () { if (running) { stop(); } else { start(); } });
     $("copy-btn").addEventListener("click", copy);
     $("reset-btn").addEventListener("click", function () { location.reload(); });
+    $("rec-btn").addEventListener("click", function () {
+      if (recorder && recorder.active) { stopRecording(true); setBanner("已停止记录并生成 .bin 文件", "info"); }
+      else { startRecording(); }
+    });
+    window.addEventListener("beforeunload", function (e) {
+      if (recorder && recorder.active) { e.preventDefault(); e.returnValue = ""; }
+    });
 
     setInterval(function () {
       hz = sampleCount - prevSampleCount;
