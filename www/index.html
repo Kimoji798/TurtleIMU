@@ -172,7 +172,7 @@
     .mag b { color: var(--text); font-weight: 600; }
     .src { margin-top: 8px; font-size: 11px; color: var(--dim); min-height: 13px; }
     .att-body { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-    .att-rows { flex: 1; min-width: 160px; padding-right: 50%; }
+    .att-rows { width: 50%; flex: 0 0 50%; min-width: 0; }
 
     .rows { display: flex; flex-direction: column; gap: 9px; }
     .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
@@ -280,6 +280,7 @@
         <div class="rows">
           <div class="row"><span class="k">纬度</span><span class="v"><span id="gps-lat-dec">--</span> <small><span id="gps-lat-dms">--</span></small></span></div>
           <div class="row"><span class="k">经度</span><span class="v"><span id="gps-lon-dec">--</span> <small><span id="gps-lon-dms">--</span></small></span></div>
+          <div class="row"><span class="k">地区</span><span class="v" id="gps-addr">--</span></div>
           <div class="row"><span class="k">高度</span><span class="v"><span id="gps-alt">--</span> <small><span id="gps-alt-ft">--</span></small></span></div>
           <div class="row"><span class="k">速度</span><span class="v"><span id="gps-speed">--</span> <small><span id="gps-speed-ms">--</span></small></span></div>
           <div class="row"><span class="k">航向</span><span class="v" id="gps-heading">--</span></div>
@@ -435,6 +436,8 @@
       return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
     }
 
+    var lastArrowAngle = null;
+
     function signedDeg(v) {
       if (v == null || !isFinite(v)) return null;
       v = ((v % 360) + 360) % 360;
@@ -450,11 +453,20 @@
         if (degEl) degEl.textContent = "---";
         if (dirEl) dirEl.textContent = "无方向数据";
         if (arrow) arrow.style.transform = "rotate(-90deg)";
+        lastArrowAngle = null;
       } else {
         var n = ((h % 360) + 360) % 360;
         if (degEl) degEl.textContent = fmt(signedDeg(n), 1);
         if (dirEl) dirEl.textContent = dirName(n);
-        if (arrow) arrow.style.transform = "rotate(" + (-n - 90) + "deg)";
+        var target = -n - 90;
+        if (lastArrowAngle == null) {
+          target = ((target % 360) + 540) % 360 - 180;
+        } else {
+          while (target - lastArrowAngle > 180) { target -= 360; }
+          while (target - lastArrowAngle < -180) { target += 360; }
+        }
+        lastArrowAngle = target;
+        if (arrow) arrow.style.transform = "rotate(" + target + "deg)";
       }
       var phone = $("phone");
       if (phone) {
@@ -550,12 +562,52 @@
         acc: c.accuracy, has: true, ts: Date.now()
       };
       setStatus("gps", "running");
+      state.gps.region = lastRegionText;
       maybeFetchWeather(c.latitude, c.longitude);
+      maybeReverseGeocode(c.latitude, c.longitude);
     }
 
     function onPositionError(err) {
       if (err && (err.code === 1)) { setStatus("gps", "denied"); setBanner("定位权限被拒绝：请在系统设置中允许访问位置", "err"); }
       else { setStatus("gps", "error"); setBanner("定位失败：" + (err && err.message ? err.message : "未知错误"), "warn"); }
+    }
+
+    var lastRevGeoAt = 0;
+    var lastRevGeoPos = null;
+    var lastRegionText = null;
+
+    function maybeReverseGeocode(lat, lon) {
+      if (demo) return;
+      var now = Date.now();
+      if (lastRevGeoPos) {
+        var moved = Math.hypot(lat - lastRevGeoPos.lat, lon - lastRevGeoPos.lon) * 111000;
+        if (moved < 300 && now - lastRevGeoAt < 10 * 60 * 1000) return;
+      }
+      lastRevGeoAt = now;
+      lastRevGeoPos = { lat: lat, lon: lon };
+      var url = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=zh";
+      fetch(url, { cache: "no-store" })
+        .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function (j) {
+          var parts = [];
+          var push = function (v) { if (v && parts.indexOf(v) === -1) parts.push(v); };
+          var li = j && j.localityInfo;
+          if (li && li.administrative) { li.administrative.forEach(function (it) { if (it.name !== "中华人民共和国") push(it.name); }); }
+          if (li && li.informative) {
+            li.informative.forEach(function (it) {
+              if (it.description === "road" || it.description === "house") { push(it.name); }
+            });
+          }
+          var text = parts.join(" · ");
+          if (!text) text = j.locality || j.city || j.principalSubdivision || "";
+          if (text) {
+            lastRegionText = text;
+            state.gps.region = text;
+            var el = $("gps-addr");
+            if (el) el.textContent = text;
+          }
+        })
+        .catch(function () {});
     }
 
     function maybeFetchWeather(lat, lon) {
@@ -780,6 +832,8 @@
       setBanner("演示模式：使用模拟传感器数据，非真实读数", "info");
       state.gps = { lat: 39.9042, lon: 116.4074, alt: 43.5, altAcc: 5, speed: 1.2, heading: 95, acc: 6, has: true, ts: Date.now() };
       state.temp = { env: 26.5, humidity: 40, apparent: 27.1, device: null };
+      state.gps.region = "陕西省西安市长安区（演示）";
+      var addrEl = $("gps-addr"); if (addrEl) addrEl.textContent = state.gps.region;
       var t0 = performance.now();
       demoTimer = setInterval(function () {
         var t = (performance.now() - t0) / 1000;
