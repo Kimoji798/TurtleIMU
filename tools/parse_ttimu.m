@@ -2,6 +2,8 @@ function data = parse_ttimu(file, doPlot)
 %PARSE_TTIMU 解析 TurtleIMU 数据记录 .bin 文件，并可选绘图
 %
 % 用法：
+%   推荐直接运行 main_parse_ttimu.m（主脚本，自动选文件并绘图）；
+%   本文件为解析函数，也可单独调用：
 %   data = parse_ttimu('TTimu_20260814_123456.bin');       % 只解析
 %   data = parse_ttimu('TTimu_20260814_123456.bin', true); % 解析并绘图
 %

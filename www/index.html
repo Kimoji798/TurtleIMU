@@ -196,6 +196,30 @@
     @media (min-width: 620px) {
       .grid { display: grid; grid-template-columns: 1fr 1fr; }
     }
+
+    .btn.sm { padding: 6px 10px; font-size: 12px; border-radius: 10px; }
+
+    .modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal.hidden { display: none; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .62); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+    .modal-panel {
+      position: relative; width: 100%; max-width: 560px; max-height: min(82vh, 660px);
+      overflow-y: auto; background: #17171a; border: 1px solid var(--border);
+      border-radius: 18px; padding: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+      user-select: text; -webkit-user-select: text;
+    }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .modal-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .modal-body { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .freq-table-wrap { overflow-x: auto; }
+    .freq-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .freq-table th, .freq-table td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+    .freq-table th { color: var(--dim); font-size: 11px; font-weight: 600; }
+    .freq-table td:first-child { color: var(--text); white-space: nowrap; }
+    .freq-table td:nth-child(2) { color: #7db8ff; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .modal-body h4 { margin: 14px 0 6px; font-size: 13px; color: var(--text); }
+    .modal-body ul { margin: 0; padding-left: 18px; }
+    .modal-body li { margin: 3px 0; }
   </style></head>
 <body>
   <div id="app">
@@ -295,27 +319,6 @@
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>数据记录</h2></div>
-        <div class="unit">固定频率统一帧（原始数据）：陀螺仪 · 加速度 · 磁力计 · 姿态角 · 经纬高 · 速度 · 环境温度 · 采样时间</div>
-        <div class="rec-ctrl">
-          <select id="rec-rate" title="采样频率">
-            <option value="10">10 Hz</option>
-            <option value="25">25 Hz</option>
-            <option value="50" selected>50 Hz</option>
-            <option value="100">100 Hz</option>
-          </select>
-          <button id="rec-btn" class="btn">开始记录</button>
-        </div>
-        <div class="rows">
-          <div class="row"><span class="k">状态</span><span class="v" id="rec-status">未在记录</span></div>
-          <div class="row"><span class="k">时长</span><span class="v" id="rec-time">--</span></div>
-          <div class="row"><span class="k">帧数</span><span class="v" id="rec-count">--</span></div>
-          <div class="row"><span class="k">大小</span><span class="v" id="rec-size">--</span></div>
-        </div>
-        <div class="note">停止后自动下载 .bin 文件；可用仓库内 tools/parse_ttimu.m 在 MATLAB 中解析并绘图。</div>
-      </section>
-
-      <section class="card">
         <div class="card-head"><h2>温度</h2></div>
         <div class="unit">环境温度来自气象 API，随定位自动刷新</div>
         <div class="rows">
@@ -328,7 +331,7 @@
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>实时统计</h2></div>
+        <div class="card-head"><h2>实时统计</h2><button id="freq-info-btn" class="btn ghost sm" type="button" title="查看各数据来源的频率明细">频率说明</button></div>
         <div class="unit">采样与刷新信息</div>
         <div class="rows">
           <div class="row"><span class="k">数据频率</span><span class="v" id="meta-hz">--</span></div>
@@ -337,6 +340,29 @@
         </div>
         <div class="note">桌面浏览器预览：访问 <span class="dim">?demo=1</span> 可查看模拟数据演示。</div>
       </section>
+
+      <section class="card">
+        <div class="card-head"><h2>数据记录</h2></div>
+        <div class="unit">固定频率统一帧（原始数据）：陀螺仪 · 加速度 · 磁力计 · 姿态角 · 经纬高 · 速度 · 环境温度 · 采样时间</div>
+        <div class="rec-ctrl">
+          <select id="rec-rate" title="采样频率">
+            <option value="10">10 Hz</option>
+            <option value="25">25 Hz</option>
+            <option value="30">30 Hz</option>
+            <option value="50" selected>50 Hz</option>
+            <option value="100">100 Hz</option>
+          </select>
+          <button id="rec-btn" class="btn">开始记录</button>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">状态</span><span class="v" id="rec-status">未在记录</span></div>
+          <div class="row"><span class="k">时长</span><span class="v" id="rec-time">--</span></div>
+          <div class="row"><span class="k">帧数</span><span class="v" id="rec-count">--</span></div>
+          <div class="row"><span class="k">大小</span><span class="v" id="rec-size">--</span></div>
+        </div>
+        <div class="note">停止后自动下载 .bin 文件；可在 MATLAB 中运行仓库内 tools/main_parse_ttimu.m 解析并绘图。</div>
+      </section>
+
     </main>
 
     <footer class="foot">
@@ -344,6 +370,43 @@
       <button id="reset-btn" class="btn ghost">重新授权</button>
     </footer>
   </div>
+
+  <div id="freq-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="freq-modal-title">
+    <div class="modal-backdrop" id="freq-modal-backdrop"></div>
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h3 id="freq-modal-title">各数据频率说明</h3>
+        <button id="freq-modal-close" class="btn ghost sm" type="button">关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="freq-table-wrap">
+          <table class="freq-table">
+            <tr><th>数据</th><th>频率</th><th>说明</th></tr>
+            <tr><td>陀螺仪</td><td>约 30 Hz</td><td>Sensor API 请求 30 Hz；iPhone 常见 25–60 Hz 波动，部分安卓机型更高</td></tr>
+            <tr><td>加速度计</td><td>约 30 Hz</td><td>devicemotion 事件驱动，频率由系统决定</td></tr>
+            <tr><td>磁力计</td><td>约 30 Hz</td><td>请求 30 Hz；iPhone Safari 不支持原始 XYZ，安卓 Chrome 可用</td></tr>
+            <tr><td>姿态角 / 指南针</td><td>约 30–60 Hz</td><td>deviceorientationabsolute 事件驱动</td></tr>
+            <tr><td>GPS 定位</td><td>约 1 Hz</td><td>watchPosition 约 0.5–1 Hz，受信号与设备影响</td></tr>
+            <tr><td>环境温度</td><td>每 5 分钟</td><td>Open-Meteo 天气接口，节流刷新</td></tr>
+            <tr><td>数字显示</td><td>4 Hz</td><td>屏幕数值每 250 ms 更新一次</td></tr>
+            <tr><td>数值条形图</td><td>约 30 Hz</td><td>每 33 ms 更新一次</td></tr>
+            <tr><td>3D 模型</td><td>约 60 Hz</td><td>跟随屏幕动画帧刷新</td></tr>
+            <tr><td>数据记录</td><td>10 / 25 / 30 / 50 / 100 Hz</td><td>固定帧率统一帧，每帧写入当时的最新读数</td></tr>
+          </table>
+        </div>
+        <h4>建议</h4>
+        <ul>
+          <li>记录频率建议选 30 Hz：与 IMU 原生频率一致，最接近真实时序。</li>
+          <li>高于 30 Hz（50 / 100）时，相邻帧可能重复同一读数；低于 30 Hz 会跳过部分读数。</li>
+          <li>GPS 建议在室外空旷处使用，室内定位与高度误差较大。</li>
+          <li>环境温度来自附近气象站，不是手机实测；设备温度浏览器无法读取。</li>
+          <li>记录时保持页面在前台亮屏，切到后台会被系统节流，可能掉帧。</li>
+          <li>.bin 文件帧头 0x55AA、每帧 88 字节；MATLAB 运行 tools/main_parse_ttimu.m 解析并绘图。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
     "use strict";
@@ -1053,6 +1116,13 @@
     $("start-btn").addEventListener("click", function () { if (running) { stop(); } else { start(); } });
     $("copy-btn").addEventListener("click", copy);
     $("reset-btn").addEventListener("click", function () { location.reload(); });
+
+    function openFreqInfo() { var m = $("freq-modal"); if (m) m.classList.remove("hidden"); }
+    function closeFreqInfo() { var m = $("freq-modal"); if (m) m.classList.add("hidden"); }
+    $("freq-info-btn").addEventListener("click", openFreqInfo);
+    $("freq-modal-close").addEventListener("click", closeFreqInfo);
+    $("freq-modal-backdrop").addEventListener("click", closeFreqInfo);
+    window.addEventListener("keydown", function (e) { if (e.key === "Escape") closeFreqInfo(); });
     $("rec-btn").addEventListener("click", function () {
       if (recorder && recorder.active) { stopRecording(true); setBanner("已停止记录并生成 .bin 文件", "info"); }
       else { startRecording(); }
