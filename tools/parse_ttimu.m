@@ -135,7 +135,7 @@ if any(ok.gyro)
     plot(t, data.gyro.x, 'r', t, data.gyro.y, 'g', t, data.gyro.z, 'b');
     legend('X', 'Y', 'Z', 'Location', 'best');
 end
-title('陀螺仪'); ylabel('°/s');
+title('陀螺仪'); ylabel('°/s'); xlabel('t (s)');
 
 % 2) 加速度计（含重力）
 subplot(4, 2, 2); hold on; grid on; box on;
@@ -143,7 +143,7 @@ if any(ok.acc)
     plot(t, data.acc.x, 'r', t, data.acc.y, 'g', t, data.acc.z, 'b');
     legend('X', 'Y', 'Z', 'Location', 'best');
 end
-title('加速度计'); ylabel('m/s²');
+title('加速度计'); ylabel('m/s²'); xlabel('t (s)');
 
 % 3) 磁力计
 subplot(4, 2, 3); hold on; grid on; box on;
@@ -154,7 +154,7 @@ else
     text(0.5, 0.5, '无磁力计数据（如 iPhone）', 'Units', 'normalized', ...
         'HorizontalAlignment', 'center');
 end
-title('磁力计'); ylabel('µT');
+title('磁力计'); ylabel('µT'); xlabel('t (s)');
 
 % 4) 姿态角
 subplot(4, 2, 4); hold on; grid on; box on;
@@ -162,7 +162,7 @@ if any(ok.att)
     plot(t, data.att.pitch, 'r', t, data.att.roll, 'g', t, data.att.azimuth, 'b');
     legend('俯仰', '横滚', '方位', 'Location', 'best');
 end
-title('姿态角'); ylabel('°');
+title('姿态角'); ylabel('°'); xlabel('t (s)');
 
 % 5) 经纬轨迹
 subplot(4, 2, 5); hold on; grid on; box on;
@@ -183,7 +183,7 @@ else
     text(0.5, 0.5, '无定位数据', 'Units', 'normalized', ...
         'HorizontalAlignment', 'center');
 end
-title('高度'); ylabel('高度 m'); xlabel('时间 s');
+title('高度'); ylabel('高度 m'); xlabel('t (s)');
 
 % 7) 速度
 subplot(4, 2, 7); hold on; grid on; box on;
@@ -193,7 +193,7 @@ else
     text(0.5, 0.5, '无定位数据', 'Units', 'normalized', ...
         'HorizontalAlignment', 'center');
 end
-title('速度'); ylabel('速度 m/s'); xlabel('时间 s');
+title('速度'); ylabel('速度 m/s'); xlabel('t (s)');
 
 % 8) 环境温度
 subplot(4, 2, 8); hold on; grid on; box on;
@@ -203,7 +203,7 @@ else
     text(0.5, 0.5, '无温度数据', 'Units', 'normalized', ...
         'HorizontalAlignment', 'center');
 end
-title('环境温度'); ylabel('°C'); xlabel('时间 s');
+title('环境温度'); ylabel('°C'); xlabel('t (s)');
 
 
     function s = tf(v)

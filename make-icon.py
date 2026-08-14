@@ -76,14 +76,18 @@ def main():
 
     paths = [
         os.path.join(WWW, "icon-1024.png"),
+        os.path.join(WWW, "icon-512.png"),
+        os.path.join(WWW, "icon-192.png"),
         os.path.join(WWW, "icon-180.png"),
         os.path.join(WWW, "favicon-32.png"),
         os.path.join(BASE, "icon-1024.png"),
     ]
     master.save(paths[0], "PNG")
-    master.resize((180, 180), Image.LANCZOS).save(paths[1], "PNG")
-    master.resize((32, 32), Image.LANCZOS).save(paths[2], "PNG")
-    master.save(paths[3], "PNG")
+    master.resize((512, 512), Image.LANCZOS).save(paths[1], "PNG")
+    master.resize((192, 192), Image.LANCZOS).save(paths[2], "PNG")
+    master.resize((180, 180), Image.LANCZOS).save(paths[3], "PNG")
+    master.resize((32, 32), Image.LANCZOS).save(paths[4], "PNG")
+    master.save(paths[5], "PNG")
     for p in paths:
         print(p, os.path.getsize(p))
 
