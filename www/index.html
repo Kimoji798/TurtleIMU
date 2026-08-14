@@ -98,17 +98,19 @@
       border: 1px solid var(--border); border-radius: 20px;
       padding: 18px; margin-bottom: 12px;
     }
-    .compass { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .compass { position: relative; flex: 1; min-width: 0; min-height: 64px; display: flex; align-items: center; }
     .compass-value { display: flex; align-items: baseline; gap: 4px; }
     .compass-value .num { font-size: 56px; font-weight: 300; letter-spacing: -2px; font-variant-numeric: tabular-nums; line-height: 1; }
     .compass-value .deg { font-size: 24px; color: var(--muted); }
-    .compass-dir { margin-top: 0; font-size: 17px; color: var(--muted); letter-spacing: 3px; }
+    .compass-dir { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin-top: 0; font-size: 17px; color: var(--muted); letter-spacing: 3px; }
     .compass-arrow {
       display: inline-block; margin-top: 0; font-size: 26px; color: var(--x);
       transition: transform .1s linear; transform-origin: 50% 50%;
     }
     .arrow-group { display: inline-flex; align-items: center; gap: 2px; }
     .compass-n { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .compass-mid { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; }
+    .compass-deg { position: absolute; top: 0; right: 0; font-size: 13px; color: var(--muted); }
 
     .phone-wrap { perspective: 900px; flex: 0 0 auto; width: 86px; height: 150px; display: flex; align-items: center; justify-content: center; }
     .phone { position: relative; width: 72px; height: 140px; transform-style: preserve-3d; }
@@ -206,9 +208,10 @@
 
     <section class="hero">
       <div class="compass">
-        <div class="compass-value"><span class="num" id="heading-deg">---</span><span class="deg">°</span></div>
+        <span class="compass-deg">°</span>
+        <div class="compass-value"><span class="num" id="heading-deg">---</span></div>
+        <span class="compass-mid"><span class="arrow-group"><span class="compass-arrow" id="compass-arrow">➤</span><span class="compass-n" title="箭头始终指向北">N</span></span></span>
         <div class="compass-dir" id="heading-dir">未启动</div>
-        <span class="arrow-group"><span class="compass-arrow" id="compass-arrow">➤</span><span class="compass-n" title="箭头始终指向北">N</span></span>
       </div>
     </section>
 
@@ -255,20 +258,20 @@
         <div class="card-head"><h2>姿态角</h2></div>
         <div class="unit">俯仰 / 横滚 / 方位（°）</div>
         <div class="att-body">
-          <div class="phone-wrap">
-            <div class="phone" id="phone">
-              <div class="phone-face front">Z</div>
-              <div class="phone-face back">Z</div>
-              <div class="phone-face right">X</div>
-              <div class="phone-face left">X</div>
-              <div class="phone-face top">Y</div>
-              <div class="phone-face bottom">Y</div>
-            </div>
-          </div>
           <div class="rows att-rows">
             <div class="row"><span class="k">俯仰角</span><span class="v" id="att-pitch">--</span></div>
             <div class="row"><span class="k">横滚角</span><span class="v" id="att-roll">--</span></div>
             <div class="row"><span class="k">方位角</span><span class="v" id="att-azimuth">--</span></div>
+          </div>
+          <div class="phone-wrap">
+            <div class="phone" id="phone">
+              <div class="phone-face front">Z</div>
+              <div class="phone-face back"></div>
+              <div class="phone-face right">X</div>
+              <div class="phone-face left"></div>
+              <div class="phone-face top">Y</div>
+              <div class="phone-face bottom"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -397,11 +400,19 @@
       var ax;
       ["x", "y", "z"].forEach(function (a) {
         ax = $(u[a]); if (ax) ax.textContent = fmt(v[a]);
-        setBar(u["f" + a], v[a], u.range);
       });
       var m = Math.hypot(v.x || 0, v.y || 0, v.z || 0);
       ax = $(u.mag); if (ax) ax.textContent = fmt(m);
       if (u.g) { ax = $(u.g); if (ax) ax.textContent = fmt(m / 9.80665, 3); }
+    }
+
+    function renderBars() {
+      ["acc", "gyro", "mag"].forEach(function (key) {
+        var u = SENSOR_UI[key];
+        ["x", "y", "z"].forEach(function (a) {
+          setBar(u["f" + a], state[key][a], u.range);
+        });
+      });
     }
 
     function toDMS(deg) {
@@ -426,6 +437,12 @@
       return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
     }
 
+    function signedDeg(v) {
+      if (v == null || !isFinite(v)) return null;
+      v = ((v % 360) + 360) % 360;
+      return v > 180 ? v - 360 : v;
+    }
+
     function renderHeading() {
       var h = state.orient.heading;
       var degEl = $("heading-deg");
@@ -437,7 +454,7 @@
         if (arrow) arrow.style.transform = "rotate(-90deg)";
       } else {
         var n = ((h % 360) + 360) % 360;
-        if (degEl) degEl.textContent = fmt(n, 1);
+        if (degEl) degEl.textContent = fmt(signedDeg(n), 1);
         if (dirEl) dirEl.textContent = dirName(n);
         if (arrow) arrow.style.transform = "rotate(" + (-n - 90) + "deg)";
       }
@@ -461,7 +478,7 @@
       var el;
       el = $("att-pitch"); if (el) el.textContent = pitch == null ? "--" : fmt(pitch, 1) + "°";
       el = $("att-roll"); if (el) el.textContent = roll == null ? "--" : fmt(roll, 1) + "°";
-      el = $("att-azimuth"); if (el) el.textContent = az == null ? "--" : fmt(az, 1) + "°";
+      el = $("att-azimuth"); if (el) el.textContent = az == null ? "--" : fmt(signedDeg(az), 1) + "°";
     }
 
     function renderGPS() {
@@ -576,7 +593,7 @@
       if (!gyroApiActive && e.rotationRate) {
         var r = e.rotationRate;
         if (r.alpha != null || r.beta != null || r.gamma != null) {
-          state.gyro = { x: r.beta || 0, y: r.gamma || 0, z: r.alpha || 0, has: true, ts: t };
+          state.gyro = { x: r.alpha || 0, y: r.beta || 0, z: r.gamma || 0, has: true, ts: t };
           setStatus("gyro", "running");
           setSrc("gyro", "devicemotion rotationRate");
         }
@@ -602,9 +619,9 @@
         gyroSensor.addEventListener("reading", function () {
           gyroApiActive = true;
           state.gyro = {
-            x: gyroSensor.x * 180 / Math.PI,
-            y: gyroSensor.y * 180 / Math.PI,
-            z: gyroSensor.z * 180 / Math.PI,
+            x: gyroSensor.z * 180 / Math.PI,
+            y: gyroSensor.x * 180 / Math.PI,
+            z: gyroSensor.y * 180 / Math.PI,
             has: true, ts: performance.now()
           };
           setStatus("gyro", "running");
@@ -819,11 +836,11 @@
     }, 1000);
 
     var lastRender = 0;
+    var lastBar = 0;
     function loop(t) {
       requestAnimationFrame(loop);
-      if (t - lastRender < 250) return;
-      lastRender = t;
-      render();
+      if (t - lastBar >= 33) { lastBar = t; renderBars(); }
+      if (t - lastRender >= 250) { lastRender = t; render(); }
     }
     requestAnimationFrame(loop);
 
