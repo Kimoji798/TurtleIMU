@@ -545,7 +545,7 @@
         lastArrowAngle = null;
       } else {
         var n = ((h % 360) + 360) % 360;
-        if (degEl) degEl.textContent = fmt(signedDeg(n), 1);
+        if (degEl) degEl.textContent = fmt(signedDeg(n), 0);
         if (dirEl) dirEl.textContent = dirName(n);
         var target = -n - 90;
         if (lastArrowAngle == null) {
@@ -677,7 +677,7 @@
       }
       lastRevGeoAt = now;
       lastRevGeoPos = { lat: lat, lon: lon };
-      var url = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=zh";
+      var url = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=zh-Hans";
       fetch(url, { cache: "no-store" })
         .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
         .then(function (j) {
@@ -1093,8 +1093,75 @@
       };
     }
 
+    function buildSnapshotText() {
+      var s = snapshot();
+      var a = s.accelerometer, g = s.gyroscope, m = s.magnetometer,
+          o = s.orientation, p = s.location, t = s.temperature;
+      var out = [];
+      function line(x) { out.push(x); }
+      function p2(n) { return (n < 10 ? "0" : "") + n; }
+      function loc(ts) {
+        if (ts === null || ts === undefined || !isFinite(ts)) return "无数据";
+        var d = new Date(ts);
+        return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + " " +
+          p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
+      }
+      function num(v, d) {
+        if (v === null || v === undefined || !isFinite(v)) return "无数据";
+        return (v > 0 ? "+" : "") + Number(v).toFixed(d);
+      }
+      function axes(v) {
+        line("X: " + num(v.has ? v.x : null, 4));
+        line("Y: " + num(v.has ? v.y : null, 4));
+        line("Z: " + num(v.has ? v.z : null, 4));
+      }
+      var az = (o && o.has) ? ((o.heading != null && isFinite(o.heading)) ? o.heading : o.alpha) : null;
+
+      line("TurtleIMU 数据快照");
+      line("时间: " + loc(new Date(s.time).getTime()));
+      line("数据频率: " + (isFinite(s.rateHz) ? fmt(s.rateHz, 1) : "--") + " Hz");
+
+      line(""); line("【加速度计】m/s²（含重力）");
+      axes(a);
+      line(""); line("【陀螺仪】°/s");
+      axes(g);
+      line(""); line("【磁力计】µT");
+      if (m && m.has) { axes(m); } else { line("无数据（iPhone Safari 不支持原始磁场）"); }
+
+      line(""); line("【姿态角】°");
+      line("俯仰角: " + num((o && o.has && o.beta != null) ? o.beta : null, 4));
+      line("横滚角: " + num((o && o.has && o.gamma != null) ? o.gamma : null, 4));
+      line("方位角: " + (az != null && isFinite(az) ? fmt(az, 1) : "无数据"));
+
+      line(""); line("【定位】");
+      line("纬度: " + (p.lat != null && isFinite(p.lat) ? Math.abs(p.lat).toFixed(6) + (p.lat >= 0 ? " N" : " S") : "无数据"));
+      line("经度: " + (p.lon != null && isFinite(p.lon) ? Math.abs(p.lon).toFixed(6) + (p.lon >= 0 ? " E" : " W") : "无数据"));
+      line("高度: " + (p.alt != null && isFinite(p.alt) ? fmt(p.alt, 1) + " m" : "无数据"));
+      line("速度: " + (p.speed != null && isFinite(p.speed) ? fmt(p.speed, 2) + " m/s" : "无数据"));
+      line("航向: " + (p.heading != null && isFinite(p.heading) ? fmt(p.heading, 1) + "°" : "无数据"));
+      line("定位精度: " + (p.acc != null && isFinite(p.acc) ? "±" + fmt(p.acc, 1) + " m" : "无数据"));
+      line("更新时间: " + loc(p.ts));
+      line("地区: " + (p.region || "无数据"));
+
+      line(""); line("【温度】");
+      line("环境温度: " + (t.env != null && isFinite(t.env) ? fmt(t.env, 1) + " °C" : "无数据"));
+      line("体感温度: " + (t.apparent != null && isFinite(t.apparent) ? fmt(t.apparent, 1) + " °C" : "无数据"));
+      line("相对湿度: " + (t.humidity != null && isFinite(t.humidity) ? fmt(t.humidity, 0) + " %" : "无数据"));
+      line("设备温度: 无法读取（浏览器限制）");
+
+      line(""); line("【数据有效性】");
+      line("加速度计: " + (a.has ? "有" : "无"));
+      line("陀螺仪: " + (g.has ? "有" : "无"));
+      line("磁力计: " + (m.has ? "有" : "无"));
+      line("姿态角: " + (o.has ? "有" : "无"));
+      line("定位: " + (p.has ? "有" : "无"));
+      line("温度: " + (t.env != null && isFinite(t.env) ? "有" : "无"));
+
+      return out.join("\n");
+    }
+
     function copy() {
-      var s = JSON.stringify(snapshot(), null, 2);
+      var s = buildSnapshotText();
       var btn = $("copy-btn");
       var finish = function (ok) {
         if (btn) { btn.textContent = ok ? "已复制" : "复制失败"; btn.style.background = ok ? "rgba(48,209,88,.25)" : "rgba(255,69,58,.25)"; }
@@ -1141,6 +1208,7 @@
     function loop(t) {
       requestAnimationFrame(loop);
       renderPhone();
+      renderHeading();
       if (t - lastBar >= 33) { lastBar = t; renderBars(); }
       if (t - lastRender >= 250) { lastRender = t; render(); }
     }
